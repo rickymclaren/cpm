@@ -22,7 +22,6 @@ type Memory struct {
 // NewMemory creates a new memory which includes minimal CP/M.
 func NewMemory() *Memory {
 	m := new(Memory)
-	m.LoadFile("UNA_std.rom")
 	return m
 }
 
@@ -99,6 +98,7 @@ func main() {
 
 	io := NewIO()
 	mem := NewMemory()
+	mem.LoadFile("a.bin")
 	states := z80.States{SPR: z80.SPR{PC: 0x000}}
 	cpu := z80.CPU{
 		States: states,
