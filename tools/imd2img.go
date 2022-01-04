@@ -5,7 +5,15 @@ import (
 	"os"
 )
 
-func process(data []byte) {
+func process(data []byte) []byte {
+
+	if data[0] != 'I' || data[1] != 'M' || data[2] != 'D' {
+		println("Not an IMD file")
+		os.Exit(-1)
+
+	}
+
+	imgData := make([]byte, 0, 80*26*128)
 	i := 0
 	c := data[i]
 	for c != 0x1A {
@@ -27,7 +35,7 @@ func process(data []byte) {
 		sectorSize := data[i]
 		i++
 
-		sectorSizeReal := 1 << (7 + sectorSize)
+		sectorSizeReal := int(1 << (7 + sectorSize))
 
 		sectorNumberingMap := data[i : i+int(sectors)]
 		fmt.Printf("Mode %d, Cylinder %d, Head %d, Sectors %d, Size %d:%d, Map %v\n",
@@ -54,11 +62,18 @@ func process(data []byte) {
 			switch sectorDataType {
 			case 0:
 				fmt.Printf("X")
+				for x := 0; x < sectorSizeReal; x++ {
+					imgData = append(imgData, 0)
+				}
 			case 1:
 				fmt.Printf("N")
+				imgData = append(imgData, data[i:i+sectorSizeReal]...)
 				i += int(sectorSizeReal)
 			case 2:
 				fmt.Printf("C")
+				for x := 0; x < sectorSizeReal; x++ {
+					imgData = append(imgData, data[i])
+				}
 				i++
 
 			default:
@@ -70,26 +85,32 @@ func process(data []byte) {
 
 	}
 
+	return imgData
+
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		println("Usage 'imd2img <imd file>'")
+	if len(os.Args) != 3 {
+		println("Usage 'imd2img <imd file> <img file>'")
 		os.Exit(-1)
 
 	}
-	args := os.Args[1:]
-	data, err := os.ReadFile(args[0])
+
+	data, err := os.ReadFile(os.Args[1])
 	if err != nil {
-		println("Cannot find '" + args[0] + "'")
+		fmt.Printf("Cannot find '%v'\n", os.Args[1])
 		os.Exit(-1)
 	}
 
-	if data[0] != 'I' || data[1] != 'M' || data[2] != 'D' {
-		println("Not an IMD file")
+	imgData := process(data)
+
+	fmt.Printf("Image Data = %v bytes\n", len(imgData))
+
+	err = os.WriteFile(os.Args[2], imgData, 0644)
+	if err != nil {
+		fmt.Printf("Cannot write '%v'\n", os.Args[2])
 		os.Exit(-1)
 
 	}
-	process(data)
 
 }
