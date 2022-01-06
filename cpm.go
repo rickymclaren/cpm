@@ -16,10 +16,10 @@ type Machine struct {
 	Cpu    z80.CPU
 }
 
-func NewMachine() *Machine {
+func NewMachine(base int) *Machine {
 	m := new(Machine)
 	m.Cpu = z80.CPU{
-		States: z80.States{SPR: z80.SPR{PC: 0x000}},
+		States: z80.States{SPR: z80.SPR{PC: uint16(base)}},
 		Memory: m,
 		IO:     m,
 	}
@@ -44,32 +44,24 @@ func (m *Machine) Get(addr uint16) uint8 {
 }
 
 // put puts "data" block from addr.
-func (m *Machine) put(addr uint16, data ...uint8) {
-	copy(m.Memory[int(addr):int(addr)+len(data)], data)
+func (m *Machine) put(addr int, data ...uint8) {
+	copy(m.Memory[addr:addr+len(data)], data)
 }
 
 // LoadFile loads a file from "Start" (0x0100) as program.
-func (m *Machine) LoadFile(name string) error {
-	prog, err := ioutil.ReadFile(name)
+func (m *Machine) LoadFile(name string, address int, offset int, length int) error {
+	data, err := ioutil.ReadFile(name)
 	if err != nil {
 		return err
 	}
-	if len(prog) > 65535 {
-		m.put(0, prog[0:65535]...)
-	} else {
-		m.put(0, prog...)
-
-	}
+	m.put(address, data[offset:(offset+length)]...)
 	return nil
 }
 
 func main() {
-	print("Hello\n")
-
-	m := NewMachine()
-	m.LoadFile("a.bin")
-
-	fmt.Printf("CPU=%v\n", m.Cpu)
+	base := 0xe400
+	m := NewMachine(base)
+	m.LoadFile("disks/a/DISK.IMG", base, 0x0080, 0x1980)
 
 	err := m.Cpu.Run(context.Background())
 

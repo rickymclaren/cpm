@@ -1,0 +1,55 @@
+CPM Notes
+=========
+
+Bias b is added to normal 20K (0x5000) memory base of 0x3400
+64K - b is 0xB000 so new base is 0xE400
+
+
+Disk Layout - Track:Sector (Sector size = 128 or 0x080)
+=======================================================
+                    Disk      Memory        Size
+00:01       BOOT    0x0000                  0x0080 bytes
+00:02-00:17 CCP     0x0080 -> 0xE400        0x0800 bytes
+00:18-01:19 BDOS    0x0880 -> 0xEC00        0x0E00 bytes
+01:20-01:26 BIOS    0x1680 -> 0xFA00        0x0380 bytes
+02:01-76:26 Data    0x1A00
+
+BIOS Jump table
+===============
+FA00H JMP BOOT
+FA03H JMP WBOOT
+FA06H JMP CONST
+FA09H JMP CONIN
+FA0CH JMP CONOUT
+FA0FH JMP LIST
+FA12H JMP PUNCH 
+FA15H JMP READER 
+FA18H JMP HOME 
+FA1BH JMP SELDSK 
+FA1EH JMP SETTRK 
+FA21H JMP SETSEC 
+FA24H JMP SETDMA 
+FA27H JMP READ 
+FA2AH JMP WRITE 
+FA2DH JMP LISTST 
+FA30H JMP SECTRAN
+
+Page Zero
+=========
+0x0000 JMP 0xFA03           ; WBOOT
+0x0003 IOBYTE
+0x0004 Current Drive 0-15
+0x0005 JMP 0xEC00           ; BDOS
+
+
+CPM Tools
+=========
+cpmls       ; List files on CPM disk image
+cpmcp       ; Copy to/from CPM disk image
+cpmrm
+cpmchmod
+cpmchattr
+mkfs.cpm    ; Make a CPM disk image
+fsck.cpm    ; Check a CPM disk image
+fsed.cpm    ; View a CPM disk image
+
