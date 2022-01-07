@@ -12,8 +12,15 @@ import (
 const Start = 0x0100
 
 type Machine struct {
-	Memory [65536]uint8
-	Cpu    z80.CPU
+	Memory      [65536]uint8
+	Cpu         z80.CPU
+	fdc_drive   uint8
+	fdc_track   uint8
+	fdc_sector  uint8
+	fdc_command uint8
+	fdc_status  uint8
+	fdc_dma_low uint8
+	fdc_dma_hi  uint8
 }
 
 func NewMachine(base int) *Machine {
@@ -27,8 +34,43 @@ func NewMachine(base int) *Machine {
 }
 
 func (m *Machine) In(addr uint8) uint8 {
-	fmt.Printf("not impl. I/O In addr=0x%02x", addr)
-	return 0
+	value := uint8(0x00)
+	switch addr {
+	case 0x00:
+		// Console Input Status - is there a character available
+		// 0xff yes, 0x00 no
+		value = 0x00
+	case 0x01:
+		// Console Data
+		value = 0x5a // 'Z'
+	case 0x02:
+		// Printer Status
+		value = 0x00
+	case 0x03:
+		// Printer Data
+		fmt.Printf("not impl. I/O In from Printer Status\n", addr)
+	case 0x05:
+		// Aux Data
+		fmt.Printf("not impl. I/O In from Aux data\n", addr)
+	case 0x0a:
+		value = m.fdc_drive
+	case 0x0b:
+		value = m.fdc_track
+	case 0x0c:
+		value = m.fdc_sector
+	case 0x0d:
+		value = m.fdc_command
+	case 0x0e:
+		value = m.fdc_status
+	case 0x0f:
+		value = m.fdc_dma_low
+	case 0x10:
+		value = m.fdc_dma_hi
+	default:
+		fmt.Printf("not impl. I/O In addr=0x%02x\n", addr)
+	}
+
+	return uint8(value)
 }
 
 func (m *Machine) Out(addr uint8, value uint8) {
