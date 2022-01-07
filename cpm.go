@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/koron-go/z80"
 )
@@ -42,7 +43,13 @@ func (m *Machine) In(addr uint8) uint8 {
 		value = 0x00
 	case 0x01:
 		// Console Data
-		value = 0x5a // 'Z'
+		var buffer = make([]byte, 1)
+		_, err := os.Stdin.Read(buffer)
+		if err != nil {
+			fmt.Println("Cannot read stdin %v\n", err)
+			os.Exit(-1)
+		}
+		value = buffer[0]
 	case 0x02:
 		// Printer Status
 		value = 0x00
