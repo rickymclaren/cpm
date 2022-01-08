@@ -109,17 +109,24 @@ func (m *Machine) Out(addr uint8, value uint8) {
 	case 0x0d:
 		m.fdc_command = value
 		switch value {
-		// case 0:
-		// 	data, err := ioutil.ReadFile("disks/a/DISK.IMG")
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	dma := (int(m.Cpu.HL.Hi) << 8) | int(m.Cpu.HL.Lo)
-		// 	offset := (m.fdc_sector*26 + m.fdc_track) * 128
-		// 	sector_data := data[offset : offset+128]
-		// 	m.put(int(dma), sector_data...)
+		case 0: // Disk Read
+			data, err := ioutil.ReadFile("disks/a/DISK.IMG")
+			if err != nil {
+				panic(err)
+			}
+			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
+			sector := m.fdc_track*26 + m.fdc_sector - 1
+			offset := int(sector) * 128
+			// fmt.Printf("Reading Drive:%d Track:%d Sector:%02d DMA:%02x Offset:%04x \n",
+			// 	m.fdc_drive,
+			// 	m.fdc_track,
+			// 	m.fdc_sector,
+			// 	dma,
+			// 	offset)
+			sector_data := data[offset : offset+128]
+			m.put(dma, sector_data...)
 		default:
-			fmt.Printf("FDC Drive:%02x Track:%02x Sector:%02x Command:%02x \n",
+			fmt.Printf("FDC Drive:%d Track:%d Sector:%02d Command:%02x \n",
 				m.fdc_drive,
 				m.fdc_track,
 				m.fdc_sector,
