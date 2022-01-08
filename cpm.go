@@ -27,7 +27,15 @@ type Machine struct {
 func NewMachine(base int) *Machine {
 	m := new(Machine)
 	m.Cpu = z80.CPU{
-		States: z80.States{SPR: z80.SPR{PC: uint16(base)}},
+		States: z80.States{
+			SPR: z80.SPR{PC: uint16(base)},
+			GPR: z80.GPR{
+				AF: z80.Register{Hi: 0x00, Lo: 0x00},
+				BC: z80.Register{Hi: 0x00, Lo: 0x00},
+				DE: z80.Register{Hi: 0x00, Lo: 0x00},
+				HL: z80.Register{Hi: 0x00, Lo: 0x00},
+			},
+		},
 		Memory: m,
 		IO:     m,
 	}
@@ -46,8 +54,7 @@ func (m *Machine) In(addr uint8) uint8 {
 		var buffer = make([]byte, 1)
 		_, err := os.Stdin.Read(buffer)
 		if err != nil {
-			fmt.Println("Cannot read stdin %v\n", err)
-			os.Exit(-1)
+			panic(err)
 		}
 		value = buffer[0]
 	case 0x02:
@@ -81,7 +88,53 @@ func (m *Machine) In(addr uint8) uint8 {
 }
 
 func (m *Machine) Out(addr uint8, value uint8) {
-	fmt.Printf("%c", value)
+	switch addr {
+	case 0x00:
+		// Console Input Status - not implemented
+	case 0x01:
+		// Console Data
+		fmt.Printf("%c", value)
+	case 0x02:
+		// Printer Status - not implemented
+	case 0x03:
+		// Printer Data - not implemented
+	case 0x05:
+		// Aux Data - not implemeneted
+	case 0x0a:
+		m.fdc_drive = value
+	case 0x0b:
+		m.fdc_track = value
+	case 0x0c:
+		m.fdc_sector = value
+	case 0x0d:
+		m.fdc_command = value
+		switch value {
+		// case 0:
+		// 	data, err := ioutil.ReadFile("disks/a/DISK.IMG")
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// 	dma := (int(m.Cpu.HL.Hi) << 8) | int(m.Cpu.HL.Lo)
+		// 	offset := (m.fdc_sector*26 + m.fdc_track) * 128
+		// 	sector_data := data[offset : offset+128]
+		// 	m.put(int(dma), sector_data...)
+		default:
+			fmt.Printf("FDC Drive:%02x Track:%02x Sector:%02x Command:%02x \n",
+				m.fdc_drive,
+				m.fdc_track,
+				m.fdc_sector,
+				m.fdc_command)
+		}
+	case 0x0e:
+		m.fdc_status = value
+	case 0x0f:
+		m.fdc_dma_low = value
+	case 0x10:
+		m.fdc_dma_hi = value
+	default:
+		fmt.Printf("not impl. I/O Out addr=0x%02x\n", addr)
+	}
+
 }
 
 func (m *Machine) Set(addr uint16, data uint8) {
