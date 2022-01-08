@@ -110,19 +110,14 @@ func (m *Machine) Out(addr uint8, value uint8) {
 		m.fdc_command = value
 		switch value {
 		case 0: // Disk Read
-			data, err := ioutil.ReadFile("disks/a/DISK.IMG")
+			image := diskImage(m.fdc_drive)
+			data, err := ioutil.ReadFile(image)
 			if err != nil {
 				panic(err)
 			}
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
 			sector := m.fdc_track*26 + m.fdc_sector - 1
 			offset := int(sector) * 128
-			// fmt.Printf("Reading Drive:%d Track:%d Sector:%02d DMA:%02x Offset:%04x \n",
-			// 	m.fdc_drive,
-			// 	m.fdc_track,
-			// 	m.fdc_sector,
-			// 	dma,
-			// 	offset)
 			sector_data := data[offset : offset+128]
 			m.put(dma, sector_data...)
 		default:
@@ -165,6 +160,11 @@ func (m *Machine) LoadFile(name string, address int, offset int, length int) err
 	}
 	m.put(address, data[offset:(offset+length)]...)
 	return nil
+}
+
+func diskImage(disk uint8) string {
+	letters := "abcdefghijklmnop"
+	return fmt.Sprintf("disks/%c/DISK.IMG", letters[disk])
 }
 
 func main() {
