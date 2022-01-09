@@ -108,6 +108,10 @@ func (m *Machine) Out(addr uint8, value uint8) {
 		m.fdc_sector = int(value)
 	case 0x0d:
 		m.fdc_command = value
+		sectors_per_track := 26
+		if m.fdc_drive > 3 {
+			sectors_per_track = 128
+		}
 		switch value {
 		case 0: // Disk Read
 			image := diskImage(m.fdc_drive)
@@ -116,7 +120,7 @@ func (m *Machine) Out(addr uint8, value uint8) {
 				panic(err)
 			}
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
-			sector := m.fdc_track*26 + m.fdc_sector - 1
+			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
 			sector_data := data[offset : offset+128]
 			m.put(dma, sector_data...)
@@ -127,7 +131,7 @@ func (m *Machine) Out(addr uint8, value uint8) {
 				panic(err)
 			}
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
-			sector := m.fdc_track*26 + m.fdc_sector - 1
+			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
 			sector_data := m.Memory[dma : dma+128]
 			copy(data[offset:offset+128], sector_data)
@@ -185,6 +189,10 @@ func diskImage(disk int) string {
 func main() {
 	m := NewMachine(0)
 	m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
+
+	defer func() {
+		fmt.Printf("%v\n", m)
+	}()
 
 	m.Cpu.Run(context.Background())
 
