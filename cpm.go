@@ -15,9 +15,9 @@ const Start = 0x0100
 type Machine struct {
 	Memory      [65536]uint8
 	Cpu         z80.CPU
-	fdc_drive   uint8
-	fdc_track   uint8
-	fdc_sector  uint8
+	fdc_drive   int
+	fdc_track   int
+	fdc_sector  int
 	fdc_command uint8
 	fdc_status  uint8
 	fdc_dma_low uint8
@@ -67,11 +67,11 @@ func (m *Machine) In(addr uint8) uint8 {
 		// Aux Data
 		fmt.Printf("not impl. I/O In from Aux data\n", addr)
 	case 0x0a:
-		value = m.fdc_drive
+		value = uint8(m.fdc_drive)
 	case 0x0b:
-		value = m.fdc_track
+		value = uint8(m.fdc_track)
 	case 0x0c:
-		value = m.fdc_sector
+		value = uint8(m.fdc_sector)
 	case 0x0d:
 		value = m.fdc_command
 	case 0x0e:
@@ -101,11 +101,11 @@ func (m *Machine) Out(addr uint8, value uint8) {
 	case 0x05:
 		// Aux Data - not implemeneted
 	case 0x0a:
-		m.fdc_drive = value
+		m.fdc_drive = int(value)
 	case 0x0b:
-		m.fdc_track = value
+		m.fdc_track = int(value)
 	case 0x0c:
-		m.fdc_sector = value
+		m.fdc_sector = int(value)
 	case 0x0d:
 		m.fdc_command = value
 		switch value {
@@ -120,6 +120,21 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			offset := int(sector) * 128
 			sector_data := data[offset : offset+128]
 			m.put(dma, sector_data...)
+		case 1: // Disk Write
+			image := diskImage(m.fdc_drive)
+			data, err := ioutil.ReadFile(image)
+			if err != nil {
+				panic(err)
+			}
+			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
+			sector := m.fdc_track*26 + m.fdc_sector - 1
+			offset := int(sector) * 128
+			sector_data := m.Memory[dma : dma+128]
+			copy(data[offset:offset+128], sector_data)
+			err = ioutil.WriteFile(image, data, 0644)
+			if err != nil {
+				panic(err)
+			}
 		default:
 			fmt.Printf("FDC Drive:%d Track:%d Sector:%02d Command:%02x \n",
 				m.fdc_drive,
@@ -162,7 +177,7 @@ func (m *Machine) LoadFile(name string, address int, offset int, length int) err
 	return nil
 }
 
-func diskImage(disk uint8) string {
+func diskImage(disk int) string {
 	letters := "abcdefghijklmnop"
 	return fmt.Sprintf("disks/%c/DISK.IMG", letters[disk])
 }
