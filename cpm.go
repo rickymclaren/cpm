@@ -183,28 +183,9 @@ func diskImage(disk int) string {
 }
 
 func main() {
-	b := (64 - 20) * 1024
-	base := 0x3400 + b
-	bdos := 0x3c00 + b
-	bios := 0x4a00 + b
-	warmboot := uint16(bios + 3)
+	m := NewMachine(0)
+	m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 
-	m := NewMachine(base)
-	m.LoadFile("disks/a/DISK.IMG", base, 0x0080, 0x1980)
-
-	m.Cpu.Memory.Set(0, 0xc3) // JP to WARMBOOT
-	m.Cpu.Memory.Set(1, uint8(warmboot&0xff))
-	m.Cpu.Memory.Set(2, uint8(warmboot>>8&0xff))
-	m.Cpu.Memory.Set(3, 0x00) // IOBYTE
-	m.Cpu.Memory.Set(4, 0x00) // Current Drive
-	m.Cpu.Memory.Set(5, 0xc3) // JP to BDOS
-	m.Cpu.Memory.Set(6, uint8(bdos&0xff))
-	m.Cpu.Memory.Set(7, uint8(bdos>>8&0xff))
-
-	err := m.Cpu.Run(context.Background())
-
-	if err != nil {
-		fmt.Printf("Error %v\n", err)
-	}
+	m.Cpu.Run(context.Background())
 
 }
