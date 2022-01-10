@@ -1,0 +1,2 @@
+start:	start 0x0100	end 0x0103	type code
+data1:	start 0x0103	end 0x40c7	type worddata

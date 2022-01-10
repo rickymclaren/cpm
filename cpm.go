@@ -1,19 +1,19 @@
 package main
 
 import (
-	"context"
+	"cpm/internal/z80"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-
-	"github.com/koron-go/z80"
 )
 
-// Start is an address where a program starts.
-const Start = 0x0100
+const DEBUG_DISK_IO = false
+const CR = 0x0d
+const LF = 0x0a
+const BACKSLASH = 0x5c
 
 type Machine struct {
-	Memory      [65536]uint8
 	Cpu         z80.CPU
 	Console     chan byte
 	fdc_drive   int
@@ -28,18 +28,14 @@ type Machine struct {
 func NewMachine(base int) *Machine {
 	m := new(Machine)
 	m.Cpu = z80.CPU{
-		States: z80.States{
-			SPR: z80.SPR{PC: uint16(base)},
-			GPR: z80.GPR{
-				AF: z80.Register{Hi: 0x00, Lo: 0x00},
-				BC: z80.Register{Hi: 0x00, Lo: 0x00},
-				DE: z80.Register{Hi: 0x00, Lo: 0x00},
-				HL: z80.Register{Hi: 0x00, Lo: 0x00},
-			},
-		},
-		Memory: m,
-		IO:     m,
+		PC: uint16(base),
+		AF: z80.Register{Hi: 0x00, Lo: 0x00},
+		BC: z80.Register{Hi: 0x00, Lo: 0x00},
+		DE: z80.Register{Hi: 0x00, Lo: 0x00},
+		HL: z80.Register{Hi: 0x00, Lo: 0x00},
 	}
+	m.Cpu.Io = m
+	m.Cpu.Bdos = m
 	m.Console = make(chan byte, 256)
 	return m
 }
@@ -51,22 +47,25 @@ func (m *Machine) In(addr uint8) uint8 {
 		// Console Input Status - is there a character available
 		// 0xff yes, 0x00 no
 		if len(m.Console) > 0 {
+			// fmt.Println("Console status 0xff")
 			value = 0xff
 		} else {
 			value = 0x00
 		}
+
 	case 0x01:
 		// Console Data
 		value = <-m.Console
+
 	case 0x02:
 		// Printer Status
 		value = 0x00
 	case 0x03:
 		// Printer Data
-		fmt.Printf("not impl. I/O In from Printer Status\n", addr)
+		fmt.Printf("not impl. I/O In from Printer Status\n")
 	case 0x05:
 		// Aux Data
-		fmt.Printf("not impl. I/O In from Aux data\n", addr)
+		fmt.Printf("not impl. I/O In from Aux data\n")
 	case 0x0a:
 		value = uint8(m.fdc_drive)
 	case 0x0b:
@@ -124,6 +123,14 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
 			sector_data := data[offset : offset+128]
+			if DEBUG_DISK_IO {
+				fmt.Printf("Read from Disk %d Track %02d Sector %02d into 0x%04x\n",
+					m.fdc_drive,
+					m.fdc_track,
+					m.fdc_sector,
+					dma,
+				)
+			}
 			m.put(dma, sector_data...)
 		case 1: // Disk Write
 			image := diskImage(m.fdc_drive)
@@ -134,7 +141,15 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
-			sector_data := m.Memory[dma : dma+128]
+			sector_data := m.Cpu.Memory[dma : dma+128]
+			if DEBUG_DISK_IO {
+				fmt.Printf("Write to Disk %d Track %02d Sector %02d from 0x%04x\n",
+					m.fdc_drive,
+					m.fdc_track,
+					m.fdc_sector,
+					dma,
+				)
+			}
 			copy(data[offset:offset+128], sector_data)
 			err = ioutil.WriteFile(image, data, 0644)
 			if err != nil {
@@ -160,16 +175,72 @@ func (m *Machine) Out(addr uint8, value uint8) {
 }
 
 func (m *Machine) Set(addr uint16, data uint8) {
-	m.Memory[addr] = data
+	m.Cpu.Memory[addr] = data
 }
 
 func (m *Machine) Get(addr uint16) uint8 {
-	return m.Memory[addr]
+	return m.Cpu.Memory[addr]
 }
 
-// put puts "data" block from addr.
+func (m *Machine) FCB() string {
+	addr := uint16(m.Cpu.DE.Hi)<<8 + uint16(m.Cpu.DE.Lo)
+	fcb := m.Cpu.Memory[addr : addr+36]
+	return fmt.Sprintf("[%d:%s.%s ex:%d rc:%d cr:%d rr:%04x]",
+		fcb[0],                               // disk
+		fcb[1:9],                             // file name
+		fcb[9:12],                            // file extension
+		fcb[13],                              // extent
+		fcb[16],                              // record count
+		fcb[32],                              // current record
+		uint16(fcb[33])+(uint16(fcb[34])<<8), // random record
+	)
+}
+
+func (m *Machine) TraceBDOS() {
+	from := uint16(m.Cpu.Memory[m.Cpu.SP+1])<<8 + uint16(m.Cpu.Memory[m.Cpu.SP])
+	switch m.Cpu.BC.Lo {
+	case 0x00:
+		log.Printf("BDOS: System Reset : Ret=%04x\n", from)
+	case 0x01:
+		log.Printf("BDOS: Console Input : Ret=%04x\n", from)
+	case 0x02:
+		log.Printf("BDOS: Console Output %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
+	case 0x06:
+		switch m.Cpu.DE.Lo {
+		case 0xff:
+			log.Printf("BDOS: Direct Console IO - Input : Ret=%04x\n", from)
+		case 0xfe:
+			log.Printf("BDOS: Direct Console IO - Status : Ret=%04x\n", from)
+		default:
+			log.Printf("BDOS: Direct Console IO - Output %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
+		}
+	case 0x09:
+		log.Printf("BDOS: Print String %02x%02x : Ret=%04x\n", m.Cpu.DE.Hi, m.Cpu.DE.Lo, from)
+	case 0x0a:
+		log.Printf("BDOS: Read Console Buffer into %02x%02x : Ret=%04x\n", m.Cpu.DE.Hi, m.Cpu.DE.Lo, from)
+	case 0x0e:
+		log.Printf("BDOS: Select Disk %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
+	case 0x0f:
+		log.Printf("BDOS: Open File %s : Ret=%04x\n", m.FCB(), from)
+	case 0x10:
+		log.Printf("BDOS: Close File %s : Ret=%04x\n", m.FCB(), from)
+	case 0x14:
+		log.Printf("BDOS: Read Sequential %s : Ret=%04x\n", m.FCB(), from)
+	case 0x15:
+		log.Printf("BDOS: Write Sequential %s : Ret=%04x\n", m.FCB(), from)
+	case 0x19:
+		log.Printf("BDOS: Return Current Disk : Ret=%04x\n", from)
+	case 0x21:
+		log.Printf("BDOS: Read Random %s : Ret=%04x\n", m.FCB(), from)
+	case 0x22:
+		log.Printf("BDOS: Write Random %s : Ret=%04x\n", m.FCB(), from)
+	default:
+		log.Printf("BDOS: %02x : Ret=%04x\n", m.Cpu.BC.Lo, from)
+	}
+}
+
 func (m *Machine) put(addr int, data ...uint8) {
-	copy(m.Memory[addr:addr+len(data)], data)
+	copy(m.Cpu.Memory[addr:addr+len(data)], data)
 }
 
 // LoadFile loads a section of a file into address.
@@ -189,28 +260,37 @@ func diskImage(disk int) string {
 
 func keyboard(m *Machine) {
 	var buffer = make([]byte, 1)
-	for {
+	for !m.Cpu.Halt {
 		_, err := os.Stdin.Read(buffer)
 		if err != nil {
 			panic(err)
 		}
 		c := buffer[0]
-		if c == 0x0a {
-			c = 0x0d
+		if c == LF {
+			c = CR
+		}
+		if c == BACKSLASH {
+			m.Cpu.Debug = true
 		}
 		m.Console <- c
 	}
 }
 
 func main() {
+	file, err := os.OpenFile("./debug/log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(file)
+
 	m := NewMachine(0)
 	go keyboard(m)
-	m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 
-	defer func() {
-		fmt.Printf("%v\n", m)
-	}()
-
-	m.Cpu.Run(context.Background())
+	err = m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		m.Cpu.Run()
+	}
 
 }

@@ -1,0 +1,9 @@
+start:      equ 0x0113
+stt:        equ 0x1ae2
+clrmem:     equ 0x1c38
+initmask:   equ 0x1c49
+counter:    equ 0x1cda
+shifter:    equ 0x1d02
+test:       equ 0x1d2a
+call_bdos:  equ 0x1dce
+initcrc:    equ 0x1e71

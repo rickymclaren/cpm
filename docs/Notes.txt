@@ -53,3 +53,16 @@ mkfs.cpm    ; Make a CPM disk image
 fsck.cpm    ; Check a CPM disk image
 fsed.cpm    ; View a CPM disk image
 
+
+Debugging
+=========
+Bios:GOCPM = 0xfb98
+Bios:WBOOTE = 0xfa03
+Bdos = 0xec06 -> FBASE:
+Bios:SETDMA = fc1d
+Ccp: = 0xe400
+
+BITMAP:  f29b:
+BITMAP2: f2ca:
+CKFILPOS: f1ed:
+
