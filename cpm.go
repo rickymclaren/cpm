@@ -15,6 +15,7 @@ const Start = 0x0100
 type Machine struct {
 	Memory      [65536]uint8
 	Cpu         z80.CPU
+	Console     chan byte
 	fdc_drive   int
 	fdc_track   int
 	fdc_sector  int
@@ -39,6 +40,7 @@ func NewMachine(base int) *Machine {
 		Memory: m,
 		IO:     m,
 	}
+	m.Console = make(chan byte, 256)
 	return m
 }
 
@@ -48,15 +50,14 @@ func (m *Machine) In(addr uint8) uint8 {
 	case 0x00:
 		// Console Input Status - is there a character available
 		// 0xff yes, 0x00 no
-		value = 0x00
+		if len(m.Console) > 0 {
+			value = 0xff
+		} else {
+			value = 0x00
+		}
 	case 0x01:
 		// Console Data
-		var buffer = make([]byte, 1)
-		_, err := os.Stdin.Read(buffer)
-		if err != nil {
-			panic(err)
-		}
-		value = buffer[0]
+		value = <-m.Console
 	case 0x02:
 		// Printer Status
 		value = 0x00
@@ -186,8 +187,20 @@ func diskImage(disk int) string {
 	return fmt.Sprintf("disks/%c/DISK.IMG", letters[disk])
 }
 
+func keyboard(m *Machine) {
+	var buffer = make([]byte, 1)
+	for {
+		_, err := os.Stdin.Read(buffer)
+		if err != nil {
+			panic(err)
+		}
+		m.Console <- buffer[0]
+	}
+}
+
 func main() {
 	m := NewMachine(0)
+	go keyboard(m)
 	m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 
 	defer func() {
