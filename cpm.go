@@ -194,7 +194,11 @@ func keyboard(m *Machine) {
 		if err != nil {
 			panic(err)
 		}
-		m.Console <- buffer[0]
+		c := buffer[0]
+		if c == 0x0a {
+			c = 0x0d
+		}
+		m.Console <- c
 	}
 }
 
