@@ -12,6 +12,7 @@ const DEBUG_DISK_IO = false
 const CR = 0x0d
 const LF = 0x0a
 const BACKSLASH = 0x5c
+const LOGGING = false
 
 type Machine struct {
 	Cpu         z80.CPU
@@ -277,16 +278,20 @@ func keyboard(m *Machine) {
 }
 
 func main() {
-	file, err := os.OpenFile("./debug/log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-	if err != nil {
-		log.Fatal(err)
+	if LOGGING {
+		file, err := os.OpenFile("./debug/log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.SetOutput(file)
+	} else {
+		log.SetOutput(ioutil.Discard)
 	}
-	log.SetOutput(file)
 
 	m := NewMachine(0)
 	go keyboard(m)
 
-	err = m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
+	err := m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 	if err != nil {
 		log.Fatal(err)
 	} else {
