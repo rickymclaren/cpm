@@ -3,29 +3,43 @@
 
 all: disk_i_img
 
-disk_i_img: ../cpm22/filesystem/* adventure/adv-B03 mbasic
+disk_i_img: ../cpm22/filesystem/* adventure mbasic sargon zork startrek
 	rm -f DISK.IMG
 	mkfs.cpm -f z80pack-hd DISK.IMG
 	cpmcp -f z80pack-hd -T raw DISK.IMG ../cpm22/filesystem/* 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG adventure/adv-A02/* 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG mbasic/mbasic.com 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG sargon/sargon.com 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG zork/ZORK*.COM 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG zork/ZORK*.DAT 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG startrek/startrek.bas 0:
 	cp DISK.IMG i/DISK.IMG
 
-adventure/adv-B03: adventure/cpm-advent.zip
+adventure:
+	wget -P adventure https://ifarchive.org/if-archive/games/cpm/cpm-advent.zip
 	unzip -d adventure adventure/cpm-advent.zip
 
-adventure/cpm-advent.zip:
-	wget -P adventure https://ifarchive.org/if-archive/games/cpm/cpm-advent.zip
-
-mbasic: mbasic.zip
+mbasic:
+	wget -P mbasic http://www.retroarchive.org/cpm/lang/mbasic.zip
 	unzip -d mbasic mbasic/mbasic.zip
 
-mbasic.zip:
-	wget -P mbasic http://www.retroarchive.org/cpm/lang/mbasic.zip
+sargon:
+	wget -P sargon http://www.retroarchive.org/cpm/games/sargon.zip
+	unzip -d sargon sargon/sargon.zip
+
+zork:
+	wget -P zork http://www.retroarchive.org/cpm/games/zork123_80.zip
+	unzip -d zork zork/zork123_80.zip
+
+startrek:
+	wget -P startrek "https://raw.githubusercontent.com/RC2014Z80/RC2014/master/BASIC-Programs/Super Startrek/startrek.bas"
 
 clean:
 	rm -rf adventure
 	rm -rf mbasic
+	rm -rf sargon
+	rm -rf zork
+	rm -rf startrek
 	rm -f DISK.IMG
 
 lsimg:
