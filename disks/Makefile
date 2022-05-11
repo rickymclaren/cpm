@@ -7,7 +7,7 @@ disk_i_img: ../cpm22/filesystem/* adventure/adv-B03
 	rm -f DISK.IMG
 	mkfs.cpm -f z80pack-hd DISK.IMG
 	cpmcp -f z80pack-hd -T raw DISK.IMG ../cpm22/filesystem/* 0:
-	cpmcp -f z80pack-hd DISK.IMG adventure/adv-B03/* 0:
+	cpmcp -f z80pack-hd DISK.IMG adventure/adv-A02/* 0:
 	cp DISK.IMG i/DISK.IMG
 
 adventure/adv-B03: adventure/cpm-advent.zip
