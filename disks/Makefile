@@ -3,11 +3,12 @@
 
 all: disk_i_img
 
-disk_i_img: ../cpm22/filesystem/* adventure/adv-B03
+disk_i_img: ../cpm22/filesystem/* adventure/adv-B03 mbasic
 	rm -f DISK.IMG
 	mkfs.cpm -f z80pack-hd DISK.IMG
 	cpmcp -f z80pack-hd -T raw DISK.IMG ../cpm22/filesystem/* 0:
-	cpmcp -f z80pack-hd DISK.IMG adventure/adv-A02/* 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG adventure/adv-A02/* 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG mbasic/mbasic.com 0:
 	cp DISK.IMG i/DISK.IMG
 
 adventure/adv-B03: adventure/cpm-advent.zip
@@ -16,8 +17,15 @@ adventure/adv-B03: adventure/cpm-advent.zip
 adventure/cpm-advent.zip:
 	wget -P adventure https://ifarchive.org/if-archive/games/cpm/cpm-advent.zip
 
+mbasic: mbasic.zip
+	unzip -d mbasic mbasic/mbasic.zip
+
+mbasic.zip:
+	wget -P mbasic http://www.retroarchive.org/cpm/lang/mbasic.zip
+
 clean:
-	rm -rf `find adventure/* -name \*.zip -o -print`
+	rm -rf adventure
+	rm -rf mbasic
 	rm -f DISK.IMG
 
 lsimg:
