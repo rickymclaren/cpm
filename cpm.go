@@ -151,6 +151,12 @@ func (m *Machine) Out(addr uint8, value uint8) {
 					dma,
 				)
 			}
+			if offset+128 > cap(data) {
+				// extend data slice if necessary
+				newSlice := make([]byte, offset+128)
+				copy(newSlice, data)
+				data = newSlice
+			}
 			copy(data[offset:offset+128], sector_data)
 			err = ioutil.WriteFile(image, data, 0644)
 			if err != nil {
