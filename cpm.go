@@ -134,7 +134,7 @@ func (m *Machine) Out(addr uint8, value uint8) {
 				panic(err)
 			}
 			if num_bytes != 128 {
-				panic(fmt.Sprintf("Bytes read is %s instead of 128\n", num_bytes))
+				panic(fmt.Sprintf("Bytes read is %d instead of 128\n", num_bytes))
 			}
 			m.put(dma, sector_data[:]...)
 			if DEBUG_DISK_IO {
