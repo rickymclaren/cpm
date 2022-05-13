@@ -3,6 +3,7 @@ package main
 import (
 	"cpm/internal/z80"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -114,16 +115,28 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			sectors_per_track = 128
 		}
 		switch value {
+
 		case 0: // Disk Read
 			image := diskImage(m.fdc_drive)
-			data, err := ioutil.ReadFile(image)
+			file, err := os.OpenFile(image, os.O_RDONLY, 0644)
 			if err != nil {
 				panic(err)
 			}
+			defer file.Close()
+
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
-			sector_data := data[offset : offset+128]
+			var sector_data [128]byte
+			file.Seek(int64(offset), io.SeekStart)
+			num_bytes, err := file.Read(sector_data[:])
+			if err != nil {
+				panic(err)
+			}
+			if num_bytes != 128 {
+				panic(fmt.Sprintf("Bytes read is %s instead of 128\n", num_bytes))
+			}
+			m.put(dma, sector_data[:]...)
 			if DEBUG_DISK_IO {
 				fmt.Printf("Read from Disk %d Track %02d Sector %02d into 0x%04x\n",
 					m.fdc_drive,
@@ -132,13 +145,15 @@ func (m *Machine) Out(addr uint8, value uint8) {
 					dma,
 				)
 			}
-			m.put(dma, sector_data...)
+
 		case 1: // Disk Write
 			image := diskImage(m.fdc_drive)
-			data, err := ioutil.ReadFile(image)
+			file, err := os.OpenFile(image, os.O_WRONLY, 0644)
 			if err != nil {
 				panic(err)
 			}
+			defer file.Close()
+
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
@@ -151,17 +166,10 @@ func (m *Machine) Out(addr uint8, value uint8) {
 					dma,
 				)
 			}
-			if offset+128 > cap(data) {
-				// extend data slice if necessary
-				newSlice := make([]byte, offset+128)
-				copy(newSlice, data)
-				data = newSlice
-			}
-			copy(data[offset:offset+128], sector_data)
-			err = ioutil.WriteFile(image, data, 0644)
-			if err != nil {
-				panic(err)
-			}
+
+			file.Seek(int64(offset), io.SeekStart)
+			file.Write(sector_data)
+
 		default:
 			fmt.Printf("FDC Drive:%d Track:%d Sector:%02d Command:%02x \n",
 				m.fdc_drive,
