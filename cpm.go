@@ -127,16 +127,16 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			dma := (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low)
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
-			var sector_data [128]byte
+			sector_data := m.Cpu.Memory[dma : dma+128]
+
 			file.Seek(int64(offset), io.SeekStart)
-			num_bytes, err := file.Read(sector_data[:])
+			num_bytes, err := file.Read(sector_data)
 			if err != nil {
 				panic(err)
 			}
 			if num_bytes != 128 {
 				panic(fmt.Sprintf("Bytes read is %d instead of 128\n", num_bytes))
 			}
-			m.put(dma, sector_data[:]...)
 			if DEBUG_DISK_IO {
 				fmt.Printf("Read from Disk %d Track %02d Sector %02d into 0x%04x\n",
 					m.fdc_drive,
