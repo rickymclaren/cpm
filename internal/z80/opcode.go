@@ -1030,9 +1030,6 @@ func (cpu *CPU) opcode(code uint8) {
 	// Call instructions
 	case CALL_XXXX:
 		target := cpu.fetch16()
-		if target == 0x0005 && cpu.Bdos != nil {
-			cpu.Bdos.TraceBDOS()
-		}
 		cpu.push(cpu.PC)
 		cpu.PC = target
 

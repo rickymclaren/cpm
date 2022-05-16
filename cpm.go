@@ -37,7 +37,6 @@ func NewMachine(base int) *Machine {
 		HL: z80.Register{Hi: 0x00, Lo: 0x00},
 	}
 	m.Cpu.Io = m
-	m.Cpu.Bdos = m
 	m.Console = make(chan byte, 256)
 	return m
 }
@@ -189,82 +188,16 @@ func (m *Machine) Out(addr uint8, value uint8) {
 
 }
 
-func (m *Machine) Set(addr uint16, data uint8) {
-	m.Cpu.Memory[addr] = data
-}
-
-func (m *Machine) Get(addr uint16) uint8 {
-	return m.Cpu.Memory[addr]
-}
-
-func (m *Machine) FCB() string {
-	addr := uint16(m.Cpu.DE.Hi)<<8 + uint16(m.Cpu.DE.Lo)
-	fcb := m.Cpu.Memory[addr : addr+36]
-	return fmt.Sprintf("[%d:%s.%s ex:%d rc:%d cr:%d rr:%04x]",
-		fcb[0],                               // disk
-		fcb[1:9],                             // file name
-		fcb[9:12],                            // file extension
-		fcb[13],                              // extent
-		fcb[16],                              // record count
-		fcb[32],                              // current record
-		uint16(fcb[33])+(uint16(fcb[34])<<8), // random record
-	)
-}
-
-func (m *Machine) TraceBDOS() {
-	from := uint16(m.Cpu.Memory[m.Cpu.SP+1])<<8 + uint16(m.Cpu.Memory[m.Cpu.SP])
-	switch m.Cpu.BC.Lo {
-	case 0x00:
-		log.Printf("BDOS: System Reset : Ret=%04x\n", from)
-	case 0x01:
-		log.Printf("BDOS: Console Input : Ret=%04x\n", from)
-	case 0x02:
-		log.Printf("BDOS: Console Output %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
-	case 0x06:
-		switch m.Cpu.DE.Lo {
-		case 0xff:
-			log.Printf("BDOS: Direct Console IO - Input : Ret=%04x\n", from)
-		case 0xfe:
-			log.Printf("BDOS: Direct Console IO - Status : Ret=%04x\n", from)
-		default:
-			log.Printf("BDOS: Direct Console IO - Output %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
-		}
-	case 0x09:
-		log.Printf("BDOS: Print String %02x%02x : Ret=%04x\n", m.Cpu.DE.Hi, m.Cpu.DE.Lo, from)
-	case 0x0a:
-		log.Printf("BDOS: Read Console Buffer into %02x%02x : Ret=%04x\n", m.Cpu.DE.Hi, m.Cpu.DE.Lo, from)
-	case 0x0e:
-		log.Printf("BDOS: Select Disk %02x : Ret=%04x\n", m.Cpu.DE.Lo, from)
-	case 0x0f:
-		log.Printf("BDOS: Open File %s : Ret=%04x\n", m.FCB(), from)
-	case 0x10:
-		log.Printf("BDOS: Close File %s : Ret=%04x\n", m.FCB(), from)
-	case 0x14:
-		log.Printf("BDOS: Read Sequential %s : Ret=%04x\n", m.FCB(), from)
-	case 0x15:
-		log.Printf("BDOS: Write Sequential %s : Ret=%04x\n", m.FCB(), from)
-	case 0x19:
-		log.Printf("BDOS: Return Current Disk : Ret=%04x\n", from)
-	case 0x21:
-		log.Printf("BDOS: Read Random %s : Ret=%04x\n", m.FCB(), from)
-	case 0x22:
-		log.Printf("BDOS: Write Random %s : Ret=%04x\n", m.FCB(), from)
-	default:
-		log.Printf("BDOS: %02x : Ret=%04x\n", m.Cpu.BC.Lo, from)
-	}
-}
-
-func (m *Machine) put(addr int, data ...uint8) {
-	copy(m.Cpu.Memory[addr:addr+len(data)], data)
-}
-
 // LoadFile loads a section of a file into address.
 func (m *Machine) LoadFile(name string, address int, offset int, length int) error {
 	data, err := ioutil.ReadFile(name)
 	if err != nil {
 		return err
 	}
-	m.put(address, data[offset:(offset+length)]...)
+	num_bytes := copy(m.Cpu.Memory[address:address+length], data[offset:(offset+length)])
+	if num_bytes != length {
+		panic(fmt.Sprintf("Loadfile copied %d bytes instead of %d\n", num_bytes, length))
+	}
 	return nil
 }
 

@@ -57,7 +57,6 @@ type CPU struct {
 	DE_       Register
 	HL_       Register
 	Io        IO
-	Bdos      BDOS
 	Halt      bool
 	Debug     bool
 	DebugFrom uint16
@@ -71,10 +70,6 @@ type Register struct {
 type IO interface {
 	In(port uint8) uint8
 	Out(port uint8, value uint8)
-}
-
-type BDOS interface {
-	TraceBDOS()
 }
 
 func (cpu *CPU) Run() {
