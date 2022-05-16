@@ -1,4 +1,6 @@
 *.bin
+*.lst
+*.sym
 debug/
 **/.DS_Store
 
