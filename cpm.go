@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cpm/internal/z80"
+	"cpm/z80"
 	"fmt"
 	"io"
 	"io/ioutil"
