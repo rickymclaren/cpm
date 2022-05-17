@@ -1,13 +1,20 @@
 # Build a filesystem from the cpm22 distro files, retro.asm BIOS, and some
 # sample downloads like adventure.
 
-all: disk_a_img disk_i_img
+all: disk_a_img disk_blank_img disk_i_img
 
 disk_a_img: ../cpm22/filesystem/*
 	rm -f DISK.IMG
 	mkfs.cpm -b ../system/boot.bin -b ../system/system.bin DISK.IMG
 	cpmcp -T raw DISK.IMG ../cpm22/filesystem/* 0:
 	cp DISK.IMG a/DISK.IMG
+
+disk_blank_img: 
+	rm -f DISK.IMG
+	mkfs.cpm DISK.IMG
+	cp DISK.IMG b/DISK.IMG
+	cp DISK.IMG c/DISK.IMG
+	cp DISK.IMG d/DISK.IMG
 
 disk_i_img: ../cpm22/filesystem/* adventure mbasic sargon zork startrek
 	rm -f DISK.IMG
