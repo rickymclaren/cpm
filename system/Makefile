@@ -1,6 +1,6 @@
 all: system.bin boot.bin
 
-system.bin: boot.asm cpm22.asm bios.asm
+system.bin: cpm22.asm bios.asm
 	z80asm -i system.asm -o $@ --list=system.lst --label=system.sym
 
 cpm22.asm: ../cpm22/CPM22.Z80
