@@ -16,7 +16,7 @@ disks_bcd:
 	cp DISK.IMG c/DISK.IMG
 	cp DISK.IMG d/DISK.IMG
 
-disk_i: ../cpm22/filesystem/* adventure mbasic sargon zork startrek
+disk_i: ../cpm22/filesystem/* adventure mbasic sargon zork startrek planetfall hitchhiker leather
 	rm -f DISK.IMG
 	mkfs.cpm -f z80pack-hd DISK.IMG
 	cpmcp -f z80pack-hd -T raw DISK.IMG ../cpm22/filesystem/* 0:
@@ -26,6 +26,9 @@ disk_i: ../cpm22/filesystem/* adventure mbasic sargon zork startrek
 	cpmcp -f z80pack-hd -T raw DISK.IMG zork/ZORK*.COM 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG zork/ZORK*.DAT 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG startrek/startrek.bas 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG planetfall/PLANET* 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG hitchhiker/HITCH* 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG leather/LEATHER* 0:
 	cp DISK.IMG i/DISK.IMG
 
 disk_j: 
@@ -53,12 +56,27 @@ zork:
 startrek:
 	wget -P startrek "https://raw.githubusercontent.com/RC2014Z80/RC2014/master/BASIC-Programs/Super Startrek/startrek.bas"
 
+planetfall:
+	wget -P planetfall http://www.z80.eu/downloads/planetfall.zip
+	unzip -d planetfall planetfall/planetfall.zip
+
+hitchhiker:
+	wget -P hitchhiker http://www.z80.eu/downloads/hitchhiker.zip
+	unzip -d hitchhiker hitchhiker/hitchhiker.zip
+
+leather:
+	wget -P leather http://www.z80.eu/downloads/leathergoddesses.zip
+	unzip -d leather leather/leathergoddesses.zip
+
 clean:
 	rm -rf adventure
 	rm -rf mbasic
 	rm -rf sargon
 	rm -rf zork
 	rm -rf startrek
+	rm -rf planetfall
+	rm -rf hitchhiker
+	rm -rf leather
 	rm -f DISK.IMG
 
 lsimg:
