@@ -9,10 +9,8 @@ import (
 	"os"
 )
 
-const DEBUG_DISK_IO = false
 const CR = 0x0d
 const LF = 0x0a
-const BACKSLASH = 0x5c
 const LOGGING = false
 
 type Machine struct {
@@ -136,14 +134,6 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			if num_bytes != 128 {
 				panic(fmt.Sprintf("Bytes read is %d instead of 128\n", num_bytes))
 			}
-			if DEBUG_DISK_IO {
-				fmt.Printf("Read from Disk %d Track %02d Sector %02d into 0x%04x\n",
-					m.fdc_drive,
-					m.fdc_track,
-					m.fdc_sector,
-					dma,
-				)
-			}
 
 		case 1: // Disk Write
 			image := diskImage(m.fdc_drive)
@@ -157,14 +147,6 @@ func (m *Machine) Out(addr uint8, value uint8) {
 			sector := m.fdc_track*sectors_per_track + m.fdc_sector - 1
 			offset := int(sector) * 128
 			sector_data := m.Cpu.Memory[dma : dma+128]
-			if DEBUG_DISK_IO {
-				fmt.Printf("Write to Disk %d Track %02d Sector %02d from 0x%04x\n",
-					m.fdc_drive,
-					m.fdc_track,
-					m.fdc_sector,
-					dma,
-				)
-			}
 
 			file.Seek(int64(offset), io.SeekStart)
 			file.Write(sector_data)
@@ -216,9 +198,6 @@ func keyboard(m *Machine) {
 		c := buffer[0]
 		if c == LF {
 			c = CR
-		}
-		if c == BACKSLASH {
-			m.Cpu.Debug = true
 		}
 		m.Console <- c
 	}
