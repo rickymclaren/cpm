@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 const CR = 0x0d
@@ -16,6 +18,7 @@ const LOGGING = false
 type Machine struct {
 	Cpu         z80.CPU
 	Console     chan byte
+	Signals     chan os.Signal
 	fdc_drive   int
 	fdc_track   int
 	fdc_sector  int
@@ -36,6 +39,9 @@ func NewMachine(base int) *Machine {
 	}
 	m.Cpu.Io = m
 	m.Console = make(chan byte, 256)
+	m.Signals = make(chan os.Signal, 1)
+	signal.Notify(m.Signals,
+		syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 	return m
 }
 
@@ -203,6 +209,22 @@ func keyboard(m *Machine) {
 	}
 }
 
+func signals(m *Machine) {
+	for !m.Cpu.Halt {
+		s := <-m.Signals
+		fmt.Printf("Signal %v\n", s)
+		switch s {
+		case syscall.SIGINT:
+			fmt.Printf("SIGINT\n")
+			m.Console <- 3
+		case syscall.SIGTSTP:
+			fmt.Printf("SIGTSTP\n")
+			m.Console <- 26
+		}
+
+	}
+}
+
 func main() {
 	if LOGGING {
 		file, err := os.OpenFile("./debug/log.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
@@ -216,6 +238,7 @@ func main() {
 
 	m := NewMachine(0)
 	go keyboard(m)
+	go signals(m)
 
 	err := m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 	if err != nil {
