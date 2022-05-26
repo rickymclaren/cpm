@@ -40,8 +40,7 @@ func NewMachine(base int) *Machine {
 	m.Cpu.Io = m
 	m.Console = make(chan byte, 256)
 	m.Signals = make(chan os.Signal, 1)
-	signal.Notify(m.Signals,
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+	signal.Notify(m.Signals, syscall.SIGTSTP)
 	return m
 }
 
@@ -212,14 +211,13 @@ func keyboard(m *Machine) {
 func signals(m *Machine) {
 	for !m.Cpu.Halt {
 		s := <-m.Signals
-		fmt.Printf("Signal %v\n", s)
 		switch s {
 		case syscall.SIGINT:
-			fmt.Printf("SIGINT\n")
 			m.Console <- 3
 		case syscall.SIGTSTP:
-			fmt.Printf("SIGTSTP\n")
 			m.Console <- 26
+		default:
+			fmt.Printf("Signal %v\n", s)
 		}
 
 	}
