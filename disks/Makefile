@@ -7,6 +7,7 @@ disk_a: ../cpm22/filesystem/*
 	rm -f DISK.IMG
 	mkfs.cpm -b ../system/boot.bin -b ../system/system.bin DISK.IMG
 	cpmcp -T raw DISK.IMG ../cpm22/filesystem/* 0:
+	cpmcp -T raw DISK.IMG bye.com 0:
 	cp DISK.IMG a/DISK.IMG
 
 disks_bcd: 
@@ -20,6 +21,7 @@ disk_i: ../cpm22/filesystem/* adventure mbasic sargon zork startrek planetfall h
 	rm -f DISK.IMG
 	mkfs.cpm -f z80pack-hd DISK.IMG
 	cpmcp -f z80pack-hd -T raw DISK.IMG ../cpm22/filesystem/* 0:
+	cpmcp -f z80pack-hd -T raw DISK.IMG bye.com 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG adventure/adv-A02/* 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG mbasic/mbasic.com 0:
 	cpmcp -f z80pack-hd -T raw DISK.IMG sargon/sargon.com 0:
