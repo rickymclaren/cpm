@@ -13,6 +13,8 @@ import (
 
 const CR = 0x0d
 const LF = 0x0a
+const CTRL_C = 3
+const CTRL_Z = 26
 const LOGGING = false
 
 type Machine struct {
@@ -40,7 +42,7 @@ func NewMachine(base int) *Machine {
 	m.Cpu.Io = m
 	m.Console = make(chan byte, 256)
 	m.Signals = make(chan os.Signal, 1)
-	signal.Notify(m.Signals, syscall.SIGTSTP)
+	signal.Notify(m.Signals, os.Interrupt, syscall.SIGTERM, syscall.SIGTSTP)
 	return m
 }
 
@@ -213,9 +215,9 @@ func signals(m *Machine) {
 		s := <-m.Signals
 		switch s {
 		case syscall.SIGINT:
-			m.Console <- 3
+			m.Console <- CTRL_C
 		case syscall.SIGTSTP:
-			m.Console <- 26
+			m.Console <- CTRL_Z
 		default:
 			fmt.Printf("Signal %v\n", s)
 		}
