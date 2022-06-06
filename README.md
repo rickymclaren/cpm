@@ -9,6 +9,11 @@ After that it is just a case of running "go run cpm".
 This uses the boot and bios from z80pack so the disk layout is as per z80pack:
 i.e. Four floppies a:, b:, c:, and d: plus two hard drives i:, and j:
 
+I have trapped the signals so:
+* bye.com will perform a halt which will end the emulator
+* CTRL+C will perform a warm boot from CCP - use CTRL+\ to abort if hung
+* CTRL+Z will send an EOF character but does not work unsing go run, use go build instead
+
 I have cribbed many ideas from :
 
 * https://github.com/koron-go/z80
