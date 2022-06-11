@@ -3,8 +3,8 @@
 This is really an excuse to practice some Go.
 I always wanted to build a Z80 computer that runs CP/M. The next best thing is to create a Z80 emulator that can run CP/M.
 
-#Warning
-I am biulding on a Macbook so you may have to tweak a few things to get it to work on your system.
+# Warning
+I am building on a Macbook so you may have to tweak a few things to get it to work on your system.
 
 
 A top-level Makefile is provided to run the lower level make files in the correct order to build the disk images.
