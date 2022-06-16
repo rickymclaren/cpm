@@ -179,7 +179,8 @@ func (m *Machine) Out(addr uint8, value uint8) {
 
 // LoadFile loads a section of a file into address.
 func (m *Machine) LoadFile(name string, address int, offset int, length int) error {
-	data, err := ioutil.ReadFile(name)
+	fullName := fmt.Sprintf("%s/%s", getDiskRoot(), name)
+	data, err := ioutil.ReadFile(fullName)
 	if err != nil {
 		return err
 	}
@@ -190,9 +191,26 @@ func (m *Machine) LoadFile(name string, address int, offset int, length int) err
 	return nil
 }
 
+func getDiskRoot() string {
+	root := "./"
+	cpmDisks := os.Getenv("CPM_DISKS")
+	if len(cpmDisks) > 0 {
+		root = cpmDisks
+	}
+	fileinfo, err := os.Stat(root)
+	if os.IsNotExist(err) {
+		panic(fmt.Sprintf("%s does not exist", root))
+	}
+	if !fileinfo.IsDir() {
+		panic(fmt.Sprintf("%s is not a directory", root))
+	}
+	return root
+}
+
 func diskImage(disk int) string {
 	letters := "abcdefghijklmnop"
-	return fmt.Sprintf("disks/%c/DISK.IMG", letters[disk])
+	root := getDiskRoot()
+	return fmt.Sprintf("%s/disks/%c/DISK.IMG", root, letters[disk])
 }
 
 func keyboard(m *Machine) {
@@ -242,7 +260,7 @@ func main() {
 
 	err := m.LoadFile("disks/a/DISK.IMG", 0, 0x0000, 0x0080)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	} else {
 		m.Cpu.Run()
 	}
