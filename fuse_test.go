@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -15,46 +15,38 @@ const HALT = 0x76
 
 func TestFuse(t *testing.T) {
 
-	testLimit := 10000
-
-	data1, err := ioutil.ReadFile("fuse/tests/tests.in")
+	inFile, err := os.Open("fuse/tests/tests.in")
 	if err != nil {
 		panic(err)
 	}
-	testsIn := strings.Split(string(data1), "\n")
+	defer inFile.Close()
 
-	data2, err := ioutil.ReadFile("fuse/tests/tests.expected")
+	expFile, err := os.Open("fuse/tests/tests.expected")
 	if err != nil {
 		panic(err)
 	}
-	expected := strings.Split(string(data2), "\n")
+	defer expFile.Close()
 
-	inLine := 0
-	for testsIn[inLine] == "" {
-		inLine++
-	}
-	expectedLine := 0
-	for expected[expectedLine] == "" {
-		expectedLine++
-	}
-
-	for inLine < len(testsIn) {
-		testLimit--
-		if testLimit == 0 {
-			break
+	scannerIn := bufio.NewScanner(inFile)
+	scannerExp := bufio.NewScanner(expFile)
+	for scannerIn.Scan() {
+		scannerExp.Scan()
+		for scannerIn.Text() == "" {
+			scannerIn.Scan()
 		}
-
-		testName := testsIn[inLine]
-		expectedName := expected[expectedLine]
+		for scannerExp.Text() == "" {
+			scannerExp.Scan()
+		}
+		testName := scannerIn.Text()
+		expectedName := scannerExp.Text()
 		if testName != expectedName {
 			os.Exit(-1)
 		}
 
 		fmt.Printf("Test: %s\n", testName)
 
-		inLine++
-		expectedLine++
-		mainRegs := strings.Split(testsIn[inLine], " ")
+		scannerIn.Scan()
+		mainRegs := strings.Split(scannerIn.Text(), " ")
 		af, _ := strconv.ParseUint(mainRegs[0], 16, 0)
 		bc, _ := strconv.ParseUint(mainRegs[1], 16, 0)
 		de, _ := strconv.ParseUint(mainRegs[2], 16, 0)
@@ -93,11 +85,11 @@ func TestFuse(t *testing.T) {
 		cpu.SP = uint16(sp)
 		cpu.PC = uint16(pc)
 
-		inLine++ // other regs
-		inLine++ // memory set
+		scannerIn.Scan() // other regs
+		scannerIn.Scan() // memory set
 
-		for testsIn[inLine] != "-1" {
-			memWrites := strings.Split(testsIn[inLine], " ")
+		for scannerIn.Text() != "-1" {
+			memWrites := strings.Split(scannerIn.Text(), " ")
 			addr, _ := strconv.ParseUint(memWrites[0], 16, 0)
 			for i := 1; i < (len(memWrites)); i++ {
 				byte := memWrites[i]
@@ -107,7 +99,7 @@ func TestFuse(t *testing.T) {
 					addr++
 				}
 			}
-			inLine++
+			scannerIn.Scan()
 		}
 
 		steps := stepsFor(testName)
@@ -115,10 +107,11 @@ func TestFuse(t *testing.T) {
 			cpu.Step()
 		}
 
-		for len(expected[expectedLine]) > 0 && strings.HasPrefix(expected[expectedLine], " ") {
-			expectedLine++ // skip events
+		scannerExp.Scan()
+		for len(scannerExp.Text()) > 0 && strings.HasPrefix(scannerExp.Text(), " ") {
+			scannerExp.Scan() // skip events
 		}
-		expectedRegs := strings.Split(expected[expectedLine], " ")
+		expectedRegs := strings.Split(scannerExp.Text(), " ")
 		af, _ = strconv.ParseUint(expectedRegs[0], 16, 0)
 		bc, _ = strconv.ParseUint(expectedRegs[1], 16, 0)
 		de, _ = strconv.ParseUint(expectedRegs[2], 16, 0)
@@ -157,10 +150,10 @@ func TestFuse(t *testing.T) {
 			assert.Equal(t, uint16(pc), cpu.PC, "%s %s", testName, "PC")
 		}
 
-		expectedLine++ // extra regs
-		expectedLine++ // memory checks
-		for expected[expectedLine] != "" {
-			memWrites := strings.Split(expected[expectedLine], " ")
+		scannerExp.Scan() // extra regs
+		scannerExp.Scan() // memory checks
+		for scannerExp.Text() != "" {
+			memWrites := strings.Split(scannerExp.Text(), " ")
 			addr, _ := strconv.ParseUint(memWrites[0], 16, 0)
 			for i := 1; i < (len(memWrites)); i++ {
 				byte := memWrites[i]
@@ -172,19 +165,9 @@ func TestFuse(t *testing.T) {
 					addr++
 				}
 			}
-			expectedLine++
+			scannerExp.Scan()
 		}
 
-		inLine++
-		for testsIn[inLine] == "" {
-			inLine++ // skip empty lines
-			if inLine >= len(testsIn) {
-				return
-			}
-		}
-		for expected[expectedLine] == "" {
-			expectedLine++ // skip empty lines
-		}
 	}
 }
 
