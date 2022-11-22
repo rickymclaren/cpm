@@ -6,7 +6,6 @@ I always wanted to build a Z80 computer that runs CP/M. The next best thing is t
 ## Warning
 I am building on a Macbook so you may have to tweak a few things to get it to work on your system.
 
-
 ## Notes
 A top-level Makefile is provided to run the lower level make files in the correct order to build the disk images.
 After that it is just a case of running "go run cpm".
