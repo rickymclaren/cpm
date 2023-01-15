@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cpm/z80"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 )
 
 const HALT = 0x76
+const FLG_UNDOC = z80.FLG_3 | z80.FLG_5
 
 func TestFuse(t *testing.T) {
 
@@ -349,4 +351,15 @@ func stepsFor(name string) int {
 		steps = 0
 	}
 	return steps
+}
+
+func newCPU() z80.CPU {
+	cpu := z80.CPU{
+		PC: uint16(0),
+		AF: z80.Register{Hi: 0x00, Lo: 0x00},
+		BC: z80.Register{Hi: 0x00, Lo: 0x00},
+		DE: z80.Register{Hi: 0x00, Lo: 0x00},
+		HL: z80.Register{Hi: 0x00, Lo: 0x00},
+	}
+	return cpu
 }
